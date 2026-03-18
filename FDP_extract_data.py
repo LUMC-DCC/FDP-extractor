@@ -36,7 +36,7 @@ def get_title(g, url):
     ?url dcterms:title ?o .
     }"""
     qres = g.query(query, initBindings={'url': url})
-    return re.sub('\W+','', str(qres.bindings[0]["o"])[:20])
+    return re.sub('\W+','', str(qres.bindings[0]["o"])) #strip all special characters from title for writing file names.
 
 
 def write_to_disk(g, url, dirpath):
@@ -45,18 +45,6 @@ def write_to_disk(g, url, dirpath):
     """
     filepath = os.path.join(dirpath, get_title(g, url))
     g.serialize(destination="{}.ttl".format(filepath), format="turtle")
-
-# deprecated:
-# def generate_path(path_sequence, title, cwd):
-#     """
-#     This function generates a folder based on the
-#     information in the FDP.
-#     """
-#     dirpath = os.path.join(cwd, path_sequence.pop())
-#     while len(dirpath) > 0:
-#         os.path.join(dirpath, path_sequence.pop())
-#     filepath = os.path.join(dirpath, title)
-#     return dirpath, filepath
 
 
 def directories(g, url, path):
@@ -100,9 +88,9 @@ def traverse_fdp(url, path=str):
     returns: a merged graph containing all resource information available
     in the FDP tree.
     """
-    #print("querying: {}".format(str(url)))
+    print("querying: {}".format(str(url)))
     url = URIRef(url)
-    resp = requests.get(str(url+"/?format=ttl"), params={"format":"ttl"})
+    resp = requests.get(str(url+"/?format=ttl"))
     # currently not possible to know if a child resource is draft from the parent
     # so we just jump up when we encounter one:
     if resp.text == "You are not allow to view this record in state DRAFT":
@@ -111,6 +99,10 @@ def traverse_fdp(url, path=str):
     g = Graph()
     # use data= because Graph.parse assumes input to be a filepath at default:
     g.parse(data=resp.text, format="ttl")
+    # setup directory for current resource:
+    path = directories(g, url, path)
+    # write resource
+    write_to_disk(g, url, path)
     # obtain ldp objects, ldp is used as pointers within the FDP datastructure
     qres = g.query(
     """SELECT ?o WHERE {
@@ -118,8 +110,6 @@ def traverse_fdp(url, path=str):
         FILTER (?p = <http://www.w3.org/ns/ldp#contains>)
         }"""
     )
-    # setup directory for current resource:
-    path = directories(g, url, path)
     # if qres is empty, we are at a leaf node:
     if len(qres) == 0:
         write_to_disk(g, url, path)
@@ -128,15 +118,13 @@ def traverse_fdp(url, path=str):
     for resource in qres:
         g2 = traverse_fdp(resource.o, path)
         g = g + g2
-    # write starting resource
-    write_to_disk(g, url, path)
     return g
 
 def get_resource(url, destination):
     #FDP url when using /?format=ttl postfix:
-    graph = traverse_fdp()
+    graph = traverse_fdp(url, destination.rstrip(".ttl"))
     # write merged graph to turtle file
     graph.serialize(destination=destination, format="turtle")
 
 if __name__ == '__main__':
-    get_resource('https://w3id.org/ejp-rd/fairdatapoints/orphanet-catalog-fdp', "orpha-fdp.ttl")
+    get_resource('https://fdp.lumc.nl', "lumc-fdp.ttl")
