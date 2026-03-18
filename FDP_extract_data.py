@@ -11,17 +11,7 @@ import re
 
 # get relative path:
 cwd = os.getcwd()
-# Resource type filtering dictionary, the value lists allow for popping one-by-one to
-# efficiently generate a generic directory structure using the deprecated generate_path function.
-path_dictionary = {'https://w3id.org/fdp/fdp-o#MetadataService': ["not target"],
-    "https://w3id.org/fdp/fdp-o#FAIRDataPoint": ["FDP"], 
-        "http://www.w3.org/ns/dcat#Catalog":["Catalog","FDP"],
-        "http://www.w3.org/ns/dcat#Dataset":["Dataset","Catalog","FDP"],
-        "http://www.w3.org/ns/dcat#Distribution":["Distribution","Dataset","Catalog","FDP"],
-        "http://www.w3.org/ns/dcat#Resource": ["not target"],
-        "http://www.w3.org/ns/dcat#DataService":["not target"]}
-
-unimportant = ('https://w3id.org/fdp/fdp-o#MetadataService', "http://www.w3.org/ns/dcat#Resource",
+ignore = ('https://w3id.org/fdp/fdp-o#MetadataService', "http://www.w3.org/ns/dcat#Resource",
                   "http://www.w3.org/ns/dcat#DataService", )
 
 def get_title(g, url):
@@ -68,7 +58,7 @@ SELECT ?value WHERE {
             # otherwise we extend path to include new resource
             # this path fails if we start from a non FDP url without setting 
             # a relative path associated with the resource
-        if uri not in unimportant:
+        if uri not in ignore:
             resource_type = uri.split('#')
             if len(resource_type) < 2:
                 resource_type = uri.split('/')
@@ -122,7 +112,7 @@ def traverse_fdp(url, path=str):
 
 def get_resource(url, destination):
     #FDP url when using /?format=ttl postfix:
-    graph = traverse_fdp(url, destination.rstrip(".ttl"))
+    graph = traverse_fdp(url)
     # write merged graph to turtle file
     graph.serialize(destination=destination, format="turtle")
 
