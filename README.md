@@ -5,5 +5,5 @@ It uses the Linked Data Platform (LDP, http://www.w3.org/ns/ldp#) ontology defin
 The "ignore" tuple at the top of the file contains the resource URLs that should be ignored while exploring the FDP.
 
 ## How to use:
-Call get_resource function with the URL of your FDP and define the turtle file wherein an aggregated graph of the complete FDP should be stored.
+Call get_resource function with the URL of your FDP and define the turtle file wherein an aggregated graph of the complete FDP should be stored. This also writes the individual graphs that are found into a recursive folder system with the same name.
 See __main__ of the file for an example.
